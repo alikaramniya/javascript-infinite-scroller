@@ -8,6 +8,7 @@ let lastPageUrl;
 let pageNumber = 1;
 let havePages = true;
 let stateSendRequest = true;
+let requestIsRunning = false;
 
 search.addEventListener("input", function () {
     let searchValue = this.value.trim();
@@ -26,7 +27,15 @@ search.addEventListener("input", function () {
 });
 
 async function sendRequest(search) {
+    pageNumber = 1;
+
     content.innerHTML = ``;
+
+    if (requestIsRunning) {
+        return;
+    }
+
+    requestIsRunning = true;
 
     let response = await fetch(
         `http://localhost:8000/post/list?search=${search}`
@@ -49,6 +58,8 @@ async function sendRequest(search) {
                 </div>
             `;
         }
+
+        requestIsRunning = false;
 
         path = res.path;
 
@@ -83,6 +94,10 @@ function renderListPosts(data) {
 }
 
 function showNextPage() {
+    if (requestIsRunning) {
+        return;
+    }
+
     // چک کردن وجود در اخرین صفحه
     let currentPageUrl = `${path}?page=${pageNumber}`;
 
@@ -115,6 +130,11 @@ function showNextPage() {
 }
 
 async function getNextPage(url) {
+    if (requestIsRunning) {
+        return;
+    }
+
+    requestIsRunning = true;
     let response = await fetch(url);
 
     if (response.ok) {
@@ -122,12 +142,14 @@ async function getNextPage(url) {
     } else {
         console.log(response.status);
     }
+
+    requestIsRunning = false;
 }
 
 window.addEventListener("scroll", function () {
     const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
 
-    if (scrollTop + clientHeight >= scrollHeight) {
+    if (scrollTop + clientHeight >= scrollHeight - 250) {
         showNextPage();
     }
 });
