@@ -9,6 +9,7 @@ let pageNumber = 1;
 let havePages = true;
 let stateSendRequest = true;
 let requestIsRunning = false;
+let showLoading = true;
 
 search.addEventListener("input", function () {
     let searchValue = this.value.trim();
@@ -31,6 +32,13 @@ async function sendRequest(search) {
 
     content.innerHTML = ``;
 
+    content.innerHTML += `
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+            </div>
+        </div>
+    `;
+
     if (requestIsRunning) {
         return;
     }
@@ -48,8 +56,20 @@ async function sendRequest(search) {
 
         if (res.data.length) {
             stateSendRequest = true;
+
             havePages = true;
-        } else if (!res.data.length && search){
+
+            requestIsRunning = false;
+
+            path = res.path;
+
+            lastPageUrl = res.last_page_url;
+
+            renderListPosts(res.data);
+        } else if (!res.data.length && search) {
+            requestIsRunning = false;
+            removeLoading();
+
             content.innerHTML += `
                 <div class="card text-bg-dark mb-3">
                     <div class="card-body">
@@ -57,23 +77,18 @@ async function sendRequest(search) {
                     </div>
                 </div>
             `;
+        } else {
+            requestIsRunning = false;
+            removeLoading();
         }
-
-        requestIsRunning = false;
-
-        path = res.path;
-
-        lastPageUrl = res.last_page_url;
-
-        renderListPosts(res.data);
-
-        // console.log(res);
     } else {
         console.log(response.status);
     }
 }
 
 function renderListPosts(data) {
+    removeLoading();
+
     data.forEach((post) => {
         content.innerHTML += `
             <div class="card text-bg-dark mb-3">
@@ -88,12 +103,15 @@ function renderListPosts(data) {
     if (pageNumber > 1) {
         document.documentElement.scrollBy({
             top: 150,
-            behavior: "smooth"
+            behavior: "smooth",
         });
     }
+
+    showLoading = true;
 }
 
 function showNextPage() {
+    showLoading = false;
     if (requestIsRunning) {
         return;
     }
@@ -112,6 +130,8 @@ function showNextPage() {
 
             getNextPage(currentPageUrl);
         } else {
+            removeLoading();
+
             stateSendRequest = false;
             content.innerHTML += `
                 <div class="card text-bg-dark mb-3">
@@ -123,7 +143,7 @@ function showNextPage() {
 
             document.documentElement.scrollBy({
                 top: 100,
-                behavior: "smooth"
+                behavior: "smooth",
             });
         }
     }
@@ -150,6 +170,21 @@ window.addEventListener("scroll", function () {
     const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
 
     if (scrollTop + clientHeight >= scrollHeight - 250) {
+        if (showLoading) {
+            content.innerHTML += `
+                <div class="text-center">
+                    <div class="spinner-border" role="status">
+                    </div>
+                </div>
+            `;
+        }
         showNextPage();
     }
 });
+
+function removeLoading() {
+    let loading = content.querySelector(".text-center");
+    if (loading) {
+        content.removeChild(loading);
+    }
+}

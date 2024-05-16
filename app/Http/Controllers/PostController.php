@@ -25,6 +25,7 @@ class PostController extends Controller
      */
     public function getListPosts(Request $request)
     {
+        usleep(rand(500000,1500000));
         $posts = $request->search
             ? Post::where('title', 'like', "%$request->search%")->paginate()
             : ['data' => []];
